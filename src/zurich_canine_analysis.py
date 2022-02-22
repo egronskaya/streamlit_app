@@ -85,7 +85,7 @@ def plot_dog_map(breed_df, z_values, fig_title, hover_temp):
                         title_x=0.5)
     return c_fig, z_values
 
-
+#TODO edit hover_temp to display Kreis correctly
 if plot_type == "Absolute Number":
     fig, z_values = plot_dog_map(breed_df,
                                  breeds_per_region,
@@ -105,8 +105,8 @@ st.header(" ")
 st.subheader("Does age influence breed preference?")
 
 # Process dog owner age data
-dfdog['mean_age'] = dfdog.apply(lambda row: (int(row['ALTER'][0:2])+int(row['ALTER'][-2:]))/2, axis=1)
-owner_age_per_region = dfdog.groupby('STADTKREIS').mean_age.mean()
+breed_df['mean_age'] = breed_df.apply(lambda row: (int(row['ALTER'][0:2])+int(row['ALTER'][-2:]))/2, axis=1)
+owner_age_per_region = breed_df.groupby('STADTKREIS').mean_age.mean()
 age_hover_temp = hover_temp="Kreis: %{z:.0f}<br>" + "Average age: %{z:.0f}<br>" + "<extra></extra>"
 
 # Plot dog owner mean age data
@@ -130,24 +130,60 @@ st.plotly_chart(age_fig)
 st.subheader(" ")
 
 # Compute correlation between percentage of a certain breed and mean owner age
-df_for_fit = pd.DataFrame([owner_age_per_region, z_values]).T
-lm = smf.ols(formula="RASSE1 ~ mean_age", data=df_for_fit).fit()
-rsquared = lm.rsquared
+if len(z_values.dropna())==len(owner_age_per_region) and len(owner_age_per_region)>2:
+    df_for_fit = pd.DataFrame([owner_age_per_region, z_values]).T
+    lm = smf.ols(formula="RASSE1 ~ mean_age", data=df_for_fit).fit()
+    rsquared = lm.rsquared
 
-age_fit_fig, ax = plt.subplots()
-regline = sns.regplot(x=owner_age_per_region, y=z_values, color='purple', ax=ax)
-ax.set_xlabel('Age [years]', fontsize=8)
-plt.xticks(fontsize=6)
-plt.yticks(fontsize=6)
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-if plot_type == "Absolute Number":
-    ax.set_ylabel(breed + 's [total number]', fontsize=8)
-    ax.set_title('Mean Dog Owner Age vs. Number ' + breed + 's Owned', fontsize=9)
-elif plot_type == "Percentage":
-    ax.set_ylabel(breed+'s [%]', fontsize=8)
-    ax.set_title('Mean Dog Owner Age vs. Percentage ' + breed + 's Owned', fontsize=9)
-ax.text(np.mean(owner_age_per_region)+.2, np.mean(z_values)+.2,
-        'r\u00b2 = ' + str(rsquared.round(2)), fontsize=8, fontweight='bold')
+    age_fit_fig, ax = plt.subplots()
+    regline = sns.regplot(x=owner_age_per_region, y=z_values, color='purple', ax=ax)
+    ax.set_xlabel('Age [years]', fontsize=8)
+    plt.xticks(fontsize=6)
+    plt.yticks(fontsize=6)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    if plot_type == "Absolute Number":
+        ax.set_ylabel(breed + 's [total number]', fontsize=8)
+        ax.set_title('Mean Dog Owner Age vs. Number ' + breed + 's Owned', fontsize=9)
+    elif plot_type == "Percentage":
+        ax.set_ylabel(breed+'s [%]', fontsize=8)
+        ax.set_title('Mean Dog Owner Age vs. Percentage ' + breed + 's Owned', fontsize=9)
+    ax.text(np.mean(owner_age_per_region)+.2, np.mean(z_values)+.2,
+            'r\u00b2 = ' + str(rsquared.round(2)), fontsize=8, fontweight='bold')
+    st.pyplot(age_fit_fig)
 
-st.pyplot(age_fit_fig)
+# Allow users to check for number of people in Zurich who are in the
+# same age range and have the same breed of dog that they do
+
+st.header(" ")
+st.subheader("Where are dog owners just like you?")
+
+# Enable selection of dog breed for map (Widgets: selectbox)
+left_column, right_column = st.columns(2)
+your_breed = left_column.selectbox("What is the breed of your dog?", breeds)
+age_ranges = list(np.sort(dfdog['ALTER'].unique()))
+your_age = right_column.selectbox("What is your age range?", age_ranges)
+
+# select dataframe with input; check size. If existing, plot, if not show message
+selected_data = dfdog[(dfdog['ALTER'] == your_age) & (dfdog['RASSE1'] == your_breed)]
+selected_data_subset = selected_data[['ALTER','RASSE1','STADTKREIS']]
+
+if len(selected_data_subset.dropna()) > 0:
+    user_fig = go.Figure(go.Choroplethmapbox(geojson=regions,
+                                             locations=selected_data.STADTKREIS.sort_values().unique(),
+                                             z=selected_data_subset.groupby('STADTKREIS').RASSE1.count(),
+                                             featureidkey='properties.name',
+                                             colorscale="Plasma",
+                                             marker_opacity=0.5,
+                                             marker_line_width=0,
+                                             hovertemplate="Kreis: %{z:.0f}<br>" + "Number " + your_breed
+                                            + "s: %{z:.0f}<br>" + "<extra></extra>"))
+    user_fig.update_layout(mapbox_style="stamen-toner",
+                           mapbox_zoom=10,
+                           mapbox_center={"lat": 47.36667, "lon": 8.55},
+                           margin={"r": 150, "t": 40, "l": 80, "b": 0},
+                           title='Owners of '+your_breed+'s between '+your_age+' years of age live here',
+                           title_x=0.5)
+    st.plotly_chart(user_fig)
+else:
+    st.write("You are unique! There are no owners of " + your_breed + "s in your age range in Zürich.")
