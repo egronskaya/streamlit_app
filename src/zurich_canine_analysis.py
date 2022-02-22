@@ -63,6 +63,8 @@ plot_type = right_column.radio("Choose Plot Type", plot_types)
 # Process dog breed data
 breed_df = dfdog[dfdog.RASSE1==breed]
 breeds_per_region = breed_df.groupby('STADTKREIS').RASSE1.count()
+reference_series = pd.Series(np.ones(12), index=(range(1,13,1)), name='RASSE1')
+breeds_per_region = breeds_per_region / reference_series
 total_dogs_per_region = dfdog.groupby('STADTKREIS').RASSE1.count()
 percent_per_region = breeds_per_region / total_dogs_per_region * 100
 
@@ -70,12 +72,13 @@ percent_per_region = breeds_per_region / total_dogs_per_region * 100
 def plot_dog_map(breed_df, z_values, fig_title, hover_temp):
 
     c_fig = go.Figure(go.Choroplethmapbox(geojson=regions,
-                                          locations=breed_df.STADTKREIS.sort_values().unique(),
+                                          locations=np.array(z_values.index),
                                           z=z_values,
                                           featureidkey='properties.name',
                                           colorscale="Plasma",
                                           marker_opacity=0.5,
                                           marker_line_width=0,
+                                          customdata=np.array(z_values.index),
                                           hovertemplate=hover_temp))
     c_fig.update_layout(mapbox_style="stamen-toner",
                         mapbox_zoom=10,
@@ -85,18 +88,17 @@ def plot_dog_map(breed_df, z_values, fig_title, hover_temp):
                         title_x=0.5)
     return c_fig, z_values
 
-#TODO edit hover_temp to display Kreis correctly
 if plot_type == "Absolute Number":
     fig, z_values = plot_dog_map(breed_df,
                                  breeds_per_region,
                                  fig_title="Total Number of " + breed + "s in Zürich",
-                                 hover_temp="Kreis: %{z:.0f}<br>" + "Number " + breed
+                                 hover_temp="Kreis: %{customdata:.0f}<br>" + "Number " + breed
                                             + "s: %{z:.0f}<br>" + "<extra></extra>")
 elif plot_type == "Percentage":
     fig, z_values = plot_dog_map(breed_df,
                                  percent_per_region,
                                  fig_title="Percentage of " + breed + "s in Zürich",
-                                 hover_temp="Kreis: %{z:.0f}<br>" + "Percent " + breed
+                                 hover_temp="Kreis: %{customdata:.0f}<br>" + "Percent " + breed
                                             + "s: %{z:.2f}%<br>" + "<extra></extra>")
 
 st.plotly_chart(fig)
@@ -105,19 +107,20 @@ st.header(" ")
 st.subheader("Does age influence breed preference?")
 
 # Process dog owner age data
-breed_df['mean_age'] = breed_df.apply(lambda row: (int(row['ALTER'][0:2])+int(row['ALTER'][-2:]))/2, axis=1)
-owner_age_per_region = breed_df.groupby('STADTKREIS').mean_age.mean()
-age_hover_temp = hover_temp="Kreis: %{z:.0f}<br>" + "Average age: %{z:.0f}<br>" + "<extra></extra>"
+dfdog['mean_age'] = dfdog.apply(lambda row: (int(row['ALTER'][0:2])+int(row['ALTER'][-2:]))/2, axis=1)
+owner_age_per_region = dfdog.groupby('STADTKREIS').mean_age.mean()
 
 # Plot dog owner mean age data
 age_fig = go.Figure(go.Choroplethmapbox(geojson=regions,
-                                        locations=breed_df.STADTKREIS.sort_values().unique(),
+                                        locations=np.array(owner_age_per_region.index),
                                         z=owner_age_per_region,
                                         featureidkey='properties.name',
                                         colorscale="Plasma",
                                         marker_opacity=0.5,
                                         marker_line_width=0,
-                                        hovertemplate=age_hover_temp))
+                                        customdata=np.array(owner_age_per_region.index),
+                                        hovertemplate="Kreis: %{customdata:.0f}<br>" +
+                                                      "Average age: %{z:.0f}<br>" + "<extra></extra>"))
 age_fig.update_layout(mapbox_style="stamen-toner",
                       mapbox_zoom=10,
                       mapbox_center={"lat": 47.36667, "lon": 8.55},
@@ -130,7 +133,7 @@ st.plotly_chart(age_fig)
 st.subheader(" ")
 
 # Compute correlation between percentage of a certain breed and mean owner age
-if len(z_values.dropna())==len(owner_age_per_region) and len(owner_age_per_region)>2:
+if len(z_values.dropna()) > 2:
     df_for_fit = pd.DataFrame([owner_age_per_region, z_values]).T
     lm = smf.ols(formula="RASSE1 ~ mean_age", data=df_for_fit).fit()
     rsquared = lm.rsquared
@@ -148,7 +151,7 @@ if len(z_values.dropna())==len(owner_age_per_region) and len(owner_age_per_regio
     elif plot_type == "Percentage":
         ax.set_ylabel(breed+'s [%]', fontsize=8)
         ax.set_title('Mean Dog Owner Age vs. Percentage ' + breed + 's Owned', fontsize=9)
-    ax.text(np.mean(owner_age_per_region)+.2, np.mean(z_values)+.2,
+    ax.text(np.nanmean(owner_age_per_region)+.2, np.nanmean(z_values)+.2,
             'r\u00b2 = ' + str(rsquared.round(2)), fontsize=8, fontweight='bold')
     st.pyplot(age_fit_fig)
 
@@ -169,14 +172,16 @@ selected_data = dfdog[(dfdog['ALTER'] == your_age) & (dfdog['RASSE1'] == your_br
 selected_data_subset = selected_data[['ALTER','RASSE1','STADTKREIS']]
 
 if len(selected_data_subset.dropna()) > 0:
+    z_values = selected_data_subset.groupby('STADTKREIS').RASSE1.count()
     user_fig = go.Figure(go.Choroplethmapbox(geojson=regions,
-                                             locations=selected_data.STADTKREIS.sort_values().unique(),
-                                             z=selected_data_subset.groupby('STADTKREIS').RASSE1.count(),
+                                             locations=np.array(z_values.index),
+                                             z=z_values,
                                              featureidkey='properties.name',
                                              colorscale="Plasma",
                                              marker_opacity=0.5,
                                              marker_line_width=0,
-                                             hovertemplate="Kreis: %{z:.0f}<br>" + "Number " + your_breed
+                                             customdata=np.array(z_values.index),
+                                             hovertemplate="Kreis: %{customdata:.0f}<br>" + "Number " + your_breed
                                             + "s: %{z:.0f}<br>" + "<extra></extra>"))
     user_fig.update_layout(mapbox_style="stamen-toner",
                            mapbox_zoom=10,
