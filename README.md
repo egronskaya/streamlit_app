@@ -1,12 +1,12 @@
-# Project Name
-
-example image:
+# The Quizzical Chihuahua
 
 
-![alternative text](reports/img/pic01.jpg)
 
 
-#### -- Project Status: [Active, On-Hold, Completed]
+![alternative text](reports/img/chihuahua.jpg)
+
+
+#### -- Project Status: [In progress]
 
 ## Project Intro/Objective
 The purpose of this project is ________. (Describe the main goals of the project. Limit to a short paragraph, 3-6 Sentences)
