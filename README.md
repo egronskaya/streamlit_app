@@ -4,7 +4,7 @@
 
 
 ![alternative text](data/chihuahua.jpg)
-
+Check out the app on Streamlit! https://share.streamlit.io/egronskaya/streamlit_app/src/zurich_canine_analysis.py 
 
 #### -- Project Status: [In progress]
 
@@ -12,27 +12,20 @@
 The purpose of this project is ________. (Describe the main goals of the project. Limit to a short paragraph, 3-6 Sentences)
 
 ### Partner
-* [Name of Partner organization/Government department etc..]
-* Website for partner
-* Partner contact: [Name of Contact]
-* If you do not have a partner leave this section out
+
+* Written as part of the SIT Academy Data Science Bootcamp: https://sit.academy/data-science
 
 ### Methods Used
-* Inferential Statistics
-* Machine Learning
 * Data Visualization
+* Inferential Statistics
 * Predictive Modeling
-* etc.
 
 ### Technologies
-* R
+
 * Python
-* D3
-* PostGres, MySql
-* Pandas, jupyter
-* HTML
-* JavaScript
-* etc.
+* Pandas
+* Streamlit
+* 
 
 ## Project Description
 (Provide more detailed overview of the project.
@@ -56,17 +49,3 @@ create another "setup.md" file and link to it here*
 
 5. Follow setup [instructions](Link to file)
 
-## Featured Notebooks/Analysis/Deliverables
-* [Notebook/Markdown/Slide Deck Title](link)
-* [Notebook/Markdown/Slide DeckTitle](link)
-* [Blog Post](link)
-
-
-## Contributing Members
-
-**Team Leads (Contacts) : [Full Name](https://github.com/[github handle])**
-
-#### Other Members:
-
- - [Full Name](https://github.com/[github handle])
- - [Full Name](https://github.com/[github handle])
