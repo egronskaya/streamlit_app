@@ -3,7 +3,7 @@
 
 
 
-![alternative text](reports/img/chihuahua.jpg)
+![alternative text](data/chihuahua.jpg)
 
 
 #### -- Project Status: [In progress]
